@@ -13,7 +13,7 @@
                         <label @dblclick="editTodo(todo)">{{ todo.name }}</label>
                         <button class="destroy" @click.prevent="deleteTodo(todo)"></button>
                     </div>
-                    <input type="text" class="edit" v-model="todo.name" @keyup.enter="doneEdit" v-focus="todo === editing">
+                    <input type="text" class="edit" v-model="todo.name" @keyup.enter="doneEdit" @blur="doneEdit" @keyup.esc="cancelEdit" v-focus="todo === editing">
                 </li>
             </ul>
         </div>
@@ -32,13 +32,23 @@
 </template>
 
 <script>
+  import Vue from 'vue'
   export default {
+    props: {
+      value: {type: Array, default () { return [] }}
+    },
     data () {
       return {
-        todos: [],
+        todos: this.value,
         newTodo: '',
         filter: 'all',
-        editing: null
+        editing: null,
+        oldTodo: ''
+      }
+    },
+    watch: {
+      value (value) {
+        this.todo = value
       }
     },
     methods: {
@@ -51,15 +61,22 @@
       },
       deleteTodo (todo) {
         this.todos = this.todos.filter(i => i !== todo)
+        this.$emit('input', this.todos)
       },
       deleteCompleted () {
         this.todos = this.todos.filter(i => !i.completed)
+        this.$emit('input', this.todos)
       },
       editTodo (todo) {
+        this.oldTodo = todo.name
         this.editing = todo
       },
       doneEdit () {
         this.editing = null
+      },
+      cancelEdit () {
+        this.editing.name = this.oldTodo
+        this.doneEdit()
       }
     },
     computed: {
@@ -101,7 +118,9 @@
     directives: {
       focus (el, value) {
         if (value) {
-          el.focus()
+          Vue.nextTick(_ =>
+            el.focus()
+          )
         }
       }
     }
